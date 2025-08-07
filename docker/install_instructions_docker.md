@@ -38,7 +38,7 @@ sudo systemctl restart docker
 ### 3. Verify GPU Access
 Test that Docker can access your GPUs:
 ```bash
-docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
+docker run --rm --gpus all --user $(id -u):$(id -g) nvidia/cuda:11.0-base nvidia-smi
 ```
 
 ## Setup and Usage
@@ -65,7 +65,9 @@ wget -P $(pwd)/inputs https://files.rcsb.org/view/5TPN.pdb
 ### 3. Basic Usage Example
 ```bash
 # Run RFdiffusion for motif scaffolding
+# Note: --user flag ensures output files have correct ownership
 docker run -it --rm --gpus all \
+  --user $(id -u):$(id -g) \
   -v $(pwd)/models:$HOME/models \
   -v $(pwd)/inputs:$HOME/inputs \
   -v $(pwd)/outputs:$HOME/outputs \
@@ -85,8 +87,9 @@ prefix=$HOME/outputs/diffused_binder_cyclic2
 pdb=$HOME/examples/input_pdbs/7zkr_GABARAP.pdb
 num_designs=10
 
-# Run the container using specific GPU (device=0)
+# Run the container using specific GPU (device=0) with correct user permissions
 docker run -it --rm --gpus '"device=0"' \
+  --user $(id -u):$(id -g) \
   -v $(pwd)/scripts:/app/RFdiffusion/scripts \
   -v $(pwd)/examples:$HOME/examples \
   -v $(pwd)/inputs:$HOME/inputs \
@@ -116,4 +119,16 @@ docker run -it --rm --gpus '"device=0"' \
 3. **Docker daemon not running**: Start with `sudo systemctl start docker`.
 
 4. **Out of memory**: Reduce `num_designs` or use specific GPU with `--gpus '"device=X"'` instead of `--gpus all`.
+
+5. **Output files owned by root**: If you're missing the `--user $(id -u):$(id -g)` flag, output files will be owned by root. Fix existing files with:
+   ```bash
+   sudo chown -R $(id -u):$(id -g) outputs/
+   ```
+
+### File Permissions Note
+
+The `--user $(id -u):$(id -g)` flag in all docker run commands ensures that:
+- Container processes run with your user ID and group ID instead of root
+- Output files in mounted volumes have correct ownership and permissions
+- No sudo access needed to read/modify generated files
 
