@@ -50,25 +50,24 @@ cd RFdiffusion
 docker build -f docker/Dockerfile -t rfdiffusion .
 ```
 
-### 2. Download Models and Prepare Directories
+### 2. Download Models and Set Permissions
 ```bash
-# Create required directories with proper permissions
-mkdir -p $(pwd)/inputs $(pwd)/outputs $(pwd)/models
-chmod 755 $(pwd)/inputs $(pwd)/outputs $(pwd)/models
-
-# Download RFdiffusion models
+# Create required directories and download models
+mkdir -p models inputs
 bash scripts/download_models.sh $(pwd)/models
 
 # Download example PDB file
 wget -P $(pwd)/inputs https://files.rcsb.org/view/5TPN.pdb
+
+# IMPORTANT: Set permissions for output directory (one time only)
+mkdir -p outputs
+chmod 777 outputs
 ```
 
 ### 3. Basic Usage Example
 ```bash
 # Run RFdiffusion for motif scaffolding
-# Note: --user flag ensures output files have correct ownership
 docker run -it --rm --gpus all \
-  --user $(id -u):$(id -g) \
   -v $(pwd)/models:$HOME/models \
   -v $(pwd)/inputs:$HOME/inputs \
   -v $(pwd)/outputs:$HOME/outputs \
@@ -81,21 +80,18 @@ docker run -it --rm --gpus all \
 ```
 
 ### 4. Advanced Example: Cyclic Contigs
-For more complex protein design with cyclic contigs:
 ```bash
 # Define variables for cyclic design
-prefix=$HOME/outputs/diffused_binder_cyclic2
+prefix=$HOME/outputs/diffused_binder_cyclic
 pdb=$HOME/examples/input_pdbs/7zkr_GABARAP.pdb
 num_designs=10
 
-# Run the container using specific GPU (device=0) with correct user permissions
+# Run cyclic protein design with specific GPU
 docker run -it --rm --gpus '"device=0"' \
-  --user $(id -u):$(id -g) \
-  -v $(pwd)/scripts:/app/RFdiffusion/scripts \
-  -v $(pwd)/examples:$HOME/examples \
+  -v $(pwd)/models:$HOME/models \
   -v $(pwd)/inputs:$HOME/inputs \
   -v $(pwd)/outputs:$HOME/outputs \
-  -v $(pwd)/models:$HOME/models \
+  -v $(pwd)/examples:$HOME/examples \
   rfdiffusion \
   --config-name base \
   inference.output_prefix=$prefix \
@@ -121,20 +117,14 @@ docker run -it --rm --gpus '"device=0"' \
 
 4. **Out of memory**: Reduce `num_designs` or use specific GPU with `--gpus '"device=X"'` instead of `--gpus all`.
 
-5. **Output files owned by root**: If you're missing the `--user $(id -u):$(id -g)` flag, output files will be owned by root. Fix existing files with:
+5. **Output files owned by root**: Output files will be owned by root. Fix with:
    ```bash
    sudo chown -R $(id -u):$(id -g) outputs/
    ```
 
-6. **Permission denied when writing to outputs**: If you get permission errors with `--user` flag, ensure the output directory has proper write permissions:
-   ```bash
-   chmod 755 outputs/
-   ```
-
 ### File Permissions Note
 
-The `--user $(id -u):$(id -g)` flag in all docker run commands ensures that:
-- Container processes run with your user ID and group ID instead of root
-- Output files in mounted volumes have correct ownership and permissions
-- No sudo access needed to read/modify generated files
+- The `chmod 777 outputs/` ensures the container can write to the output directory
+- Output files will be owned by root, but you can change ownership after generation if needed
+- This is the simplest approach that works reliably across all systems
 
