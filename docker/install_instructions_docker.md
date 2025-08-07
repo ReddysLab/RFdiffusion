@@ -52,8 +52,9 @@ docker build -f docker/Dockerfile -t rfdiffusion .
 
 ### 2. Download Models and Prepare Directories
 ```bash
-# Create required directories
-mkdir $(pwd)/inputs $(pwd)/outputs $(pwd)/models
+# Create required directories with proper permissions
+mkdir -p $(pwd)/inputs $(pwd)/outputs $(pwd)/models
+chmod 755 $(pwd)/inputs $(pwd)/outputs $(pwd)/models
 
 # Download RFdiffusion models
 bash scripts/download_models.sh $(pwd)/models
@@ -123,6 +124,11 @@ docker run -it --rm --gpus '"device=0"' \
 5. **Output files owned by root**: If you're missing the `--user $(id -u):$(id -g)` flag, output files will be owned by root. Fix existing files with:
    ```bash
    sudo chown -R $(id -u):$(id -g) outputs/
+   ```
+
+6. **Permission denied when writing to outputs**: If you get permission errors with `--user` flag, ensure the output directory has proper write permissions:
+   ```bash
+   chmod 755 outputs/
    ```
 
 ### File Permissions Note
