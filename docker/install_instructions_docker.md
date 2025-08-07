@@ -38,7 +38,7 @@ sudo systemctl restart docker
 ### 3. Verify GPU Access
 Test that Docker can access your GPUs:
 ```bash
-docker run --rm --gpus all --user $(id -u):$(id -g) nvidia/cuda:11.0-base nvidia-smi
+docker run --rm --gpus all --user $(id -u):$(id -g) nvidia/cuda:11.6-base nvidia-smi
 ```
 
 ## Setup and Usage
